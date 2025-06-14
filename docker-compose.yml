@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  datahub:
+    build: .
+    container_name: rpm-platform
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    stdin_open: true
+    tty: true 
