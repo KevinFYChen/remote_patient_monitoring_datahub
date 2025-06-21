@@ -20,5 +20,5 @@ COPY --from=builder /install /opt/python
 WORKDIR /app
 COPY . .
 
-# Default command to keep container running
-CMD ["/bin/bash"]
+# Default command to run Django development server
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
