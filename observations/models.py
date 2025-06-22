@@ -1,8 +1,9 @@
+from django.db import models
 from common.models import TimeStampedModel
 from patients.models import Patient
 
 class Observation(TimeStampedModel):
-    id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     metric_code = models.CharField(max_length=20)
     value = models.DecimalField(max_digits=10, decimal_places=2)
