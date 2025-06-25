@@ -1,7 +1,8 @@
-from django.db import models
-from common.choices import sex_choices
-from common.models import TimeStampedModel
 import uuid
+from django.db import models
+from common.choices import sex_choices, care_team_role_choices
+from common.models import TimeStampedModel
+
 
 class Patient(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -15,12 +16,18 @@ class Patient(TimeStampedModel):
 
 
 class PatientIdentifier(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     system = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
     type_code = models.CharField(max_length=255)
 
+
 class CareTeamMembership(models.Model):
-    pass
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    clinician = models.ForeignKey(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=255)
+    status = models.CharField(max_length=255)
+    assigned_at = models.DateTimeField()
 
