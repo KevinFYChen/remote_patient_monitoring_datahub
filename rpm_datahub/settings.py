@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'common',
+    'accounts',
+    'patients',
+    'observations',
 ]
 
 MIDDLEWARE = [
@@ -78,6 +83,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+AUTH_USER_MODEL = 'accounts.RpmUser'
 
 
 # Password validation

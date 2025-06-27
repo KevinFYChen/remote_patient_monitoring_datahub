@@ -1,1 +1,6 @@
-sex_choices = ["male", "female", "other", "unknown"]
+sex_choices = [
+    ("male", "Male"),
+    ("female", "Female"),
+    ("other", "Other"),
+    ("unknown", "Unknown"),
+]
