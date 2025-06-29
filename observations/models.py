@@ -14,9 +14,9 @@ class Device(TimeStampedModel):
     first_seen_at   = models.DateTimeField(auto_now_add=True)
     last_seen_at    = models.DateTimeField(auto_now=True)
     metadata        = models.JSONField(default=dict)    
-    
 
-
+    class Meta:
+        db_table = 'device'
 
 class Observation(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -28,3 +28,5 @@ class Observation(TimeStampedModel):
     device_id = models.CharField(max_length=255, blank=True, null=True)
     raw_fhir_json = models.JSONField(blank=True, null=True)
 
+    class Meta:
+        db_table = 'observation'
