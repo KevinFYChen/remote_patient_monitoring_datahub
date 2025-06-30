@@ -42,4 +42,17 @@ class RpmUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:  # pragma: no cover
         return self.email
+    
+class LoginAttempt(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(RpmUser, on_delete=models.CASCADE)
+    success = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField()
 
+    class Meta:
+        db_table = "login_attempt"
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user} @ {self.timestamp} - {self.success}"
