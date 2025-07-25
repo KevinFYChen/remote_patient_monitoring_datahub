@@ -8,5 +8,8 @@ services:
       - .:/app
     ports:
       - "8000:8000"
+    env_file:
+    # Contains secret key
+      - .env
     stdin_open: true
     tty: true 

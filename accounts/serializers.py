@@ -4,6 +4,11 @@ from .models import RpmUser, LoginAttempt
 
 class RpmUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+
+    def create(self, validated_data):
+        user = RpmUser.objects.create_user(**validated_data)
+        return user
+    
     class Meta:
         model = RpmUser
         fields = ['email', 'is_active', 'is_staff', 'password','role']
