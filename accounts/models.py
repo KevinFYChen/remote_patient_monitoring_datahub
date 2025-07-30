@@ -11,6 +11,9 @@ class RpmUserManager(BaseUserManager):
     def create_user(self, email: str, password: str, **extra_fields):
         if not email:
             raise ValueError("The Email field must be set")
+        if extra_fields.get('role') not in [role[0] for role in RoleChoices.choices]:
+            raise ValueError(f"Invalid role: {extra_fields.get('role')}")
+
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -40,7 +43,7 @@ class RpmUser(AbstractBaseUser, PermissionsMixin):
     class Meta:
         db_table = "account_user"
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self) -> str: 
         return self.email
     
 class LoginAttempt(models.Model):
