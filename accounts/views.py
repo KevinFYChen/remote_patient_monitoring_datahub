@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 from .serializers import RpmUserSerializer, RpmPatientSerializer, RpmClinicianSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .models import LoginAttempt
+from .models import LoginAttempt, RpmUser
 from .serializers import LoginAttemptSerializer
 
 class CreatePatientView(generics.CreateAPIView):
@@ -13,7 +13,24 @@ class CreateClinicianView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 class LoginView(TokenObtainPairView):
-    pass
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            logged_in_user = RpmUser.objects.get(email=request.data.get("email"))
+            LoginAttempt.objects.create(
+                user=logged_in_user,
+                ip_address=request.META.get("REMOTE_ADDR", ""),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                success=True
+            )
+        else:
+            LoginAttempt.objects.create(
+                user=None,
+                ip_address=request.META.get("REMOTE_ADDR", ""),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                success=False
+            )
+        return response
 
 class RefreshTokenView(TokenRefreshView):
     pass
@@ -31,5 +48,3 @@ class LoginAttemptsListView(generics.ListAPIView):
 
     def get_queryset(self):
         return LoginAttempt.objects.all()
-
-
