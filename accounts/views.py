@@ -1,5 +1,5 @@
 from rest_framework import generics, permissions
-from .serializers import RpmUserSerializer, RpmPatientSerializer, RpmClinicianSerializer
+from .serializers import RpmUserSerializer, RpmPatientSerializer, RpmClinicianSerializer, RpmAnalystSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .models import LoginAttempt, RpmUser
 from .serializers import LoginAttemptSerializer
@@ -10,6 +10,10 @@ class CreatePatientView(generics.CreateAPIView):
 
 class CreateClinicianView(generics.CreateAPIView):
     serializer_class = RpmClinicianSerializer
+    permission_classes = [permissions.AllowAny]
+
+class CreateAnalystView(generics.CreateAPIView):
+    serializer_class = RpmAnalystSerializer
     permission_classes = [permissions.AllowAny]
 
 class LoginView(TokenObtainPairView):
