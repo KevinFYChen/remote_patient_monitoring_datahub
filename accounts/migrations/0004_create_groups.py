@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
         Group.objects.create(name='Analyst')
         Group.objects.create(name='Clinician')
         Group.objects.create(name='Patient')
+        Group.objects.create(name='Organization Admin')
 
     dependencies = [
         ('accounts', '0003_loginattempt'),

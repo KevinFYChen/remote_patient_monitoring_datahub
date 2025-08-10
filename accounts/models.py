@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import uuid
+from common.models import TimeStampedModel
 
 class RoleChoices(models.TextChoices):
         ADMIN = "admin", "Admin"
@@ -47,6 +48,38 @@ class RpmUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self) -> str: 
         return self.email
     
+
+class ClinicianProfile(TimeStampedModel):
+    """
+    Profile for a clinician
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(
+        RpmUser, 
+        on_delete=models.CASCADE,
+        related_name='clinician_profile'
+    )
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    npi_number = models.CharField(max_length=10, unique=True, null=True, blank=True)
+    medical_license_number = models.CharField(max_length=255)
+    license_state = models.CharField(max_length=255)
+    license_expiration_date = models.DateField()
+    specialty = models.CharField(max_length=255)
+    credentials_verified = models.BooleanField(default=False)
+    verification_date = models.DateField(null=True, blank=True)
+    verified_by = models.ForeignKey(
+        RpmUser, 
+        on_delete=models.SET_NULL, 
+        null=True, blank=True,
+        related_name='verified_clinician_profiles',
+        related_query_name='verified_clinician_profile'
+    )
+
+    class Meta:
+        db_table = "clinician_profile"
+
+
 class LoginAttempt(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(RpmUser, on_delete=models.CASCADE)
