@@ -5,7 +5,6 @@ from common.models import TimeStampedModel
 
 class RoleChoices(models.TextChoices):
         ADMIN = "admin", "Admin"
-        ANALYST = "analyst", "Analyst"
         CLINICIAN = "clinician", "Clinician"
         PATIENT = "patient", "Patient"
 

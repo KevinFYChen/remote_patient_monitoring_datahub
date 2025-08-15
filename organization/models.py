@@ -15,7 +15,7 @@ ORGANIZATION_MEMBERSHIP_STATUS_CHOICES = [
     ('suspended', 'Suspended')
 ]
 
-CLINICIAN_ORGANIZATION_ACCOUNT_INVITATION_STATUS_CHOICES = [
+CLINICIAN_INVITATION = [
     ('pending', 'Pending'),
     ('expired', 'Expired'),
     ('accepted', 'Accepted'),
@@ -71,7 +71,7 @@ class OrganizationMembership(TimeStampedModel):
         ]
 
 
-class ClinicianOrganizationAccountInvitation(TimeStampedModel):
+class ClinicianInvitation(TimeStampedModel):
     """
     A resource that represents an invitation to create an account for a clinician in an organization
     """
@@ -81,7 +81,7 @@ class ClinicianOrganizationAccountInvitation(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     invited_by = models.ForeignKey(RpmUser, on_delete=models.CASCADE) # A user can receive multiple invitations.
     invitation_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    status = models.CharField(max_length=255, choices=CLINICIAN_ORGANIZATION_ACCOUNT_INVITATION_STATUS_CHOICES)
+    status = models.CharField(max_length=255, choices=CLINICIAN_INVITATION)
 
     class Meta:
         db_table = "clinician_organization_account_invitation"

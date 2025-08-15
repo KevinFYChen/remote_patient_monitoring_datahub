@@ -6,10 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
     def create_groups(apps, schema_editor):
         Group = apps.get_model('auth', 'Group')
-        Group.objects.create(name='Analyst')
         Group.objects.create(name='Clinician')
         Group.objects.create(name='Patient')
-        Group.objects.create(name='Organization Admin')
 
     dependencies = [
         ('accounts', '0003_loginattempt'),

@@ -8,8 +8,7 @@ class IsOrganizationAdminForOrg(BasePermission):
     def has_permission(self, request, view):
         org_id = view.kwargs.get('organization_id')
         return (
-            request.user.is_authenticated
-            and request.user.has_perm('organization.is_organization_admin')
+            request.user.has_perm('organization.is_organization_admin')
             and OrganizationMembership.objects.filter(
                 user=request.user,
                 organization=org_id,

@@ -12,9 +12,6 @@ class CreateClinicianView(generics.CreateAPIView):
     serializer_class = RpmClinicianSerializer
     permission_classes = [permissions.AllowAny]
 
-class CreateAnalystView(generics.CreateAPIView):
-    serializer_class = RpmAnalystSerializer
-    permission_classes = [permissions.AllowAny]
 
 class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
