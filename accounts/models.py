@@ -29,7 +29,7 @@ class RpmUserManager(BaseUserManager):
 
 class RpmUser(AbstractBaseUser, PermissionsMixin):
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -52,7 +52,7 @@ class ClinicianProfile(TimeStampedModel):
     """
     Profile for a clinician
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         RpmUser, 
         on_delete=models.CASCADE,
@@ -80,7 +80,7 @@ class ClinicianProfile(TimeStampedModel):
 
 
 class LoginAttempt(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(RpmUser, on_delete=models.CASCADE)
     success = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)

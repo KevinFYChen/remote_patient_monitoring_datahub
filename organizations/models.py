@@ -26,7 +26,7 @@ class Organization(TimeStampedModel):
     """
     This model corresponds to the Organization FHIR resource
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     address = models.TextField(blank=True, null=True)
     contact_number = models.CharField(max_length=255, blank=True, null=True)
@@ -43,7 +43,7 @@ class OrganizationMembership(TimeStampedModel):
     """
     Specifies the membership of an organization
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         RpmUser, 
         on_delete=models.CASCADE,
@@ -75,16 +75,15 @@ class ClinicianInvitation(TimeStampedModel):
     """
     A resource that represents an invitation to create an account for a clinician in an organization
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     expires_at = models.DateTimeField()
     clinician_email = models.EmailField()
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     invited_by = models.ForeignKey(RpmUser, on_delete=models.CASCADE) # A user can receive multiple invitations.
-    invitation_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     status = models.CharField(max_length=255, choices=CLINICIAN_INVITATION)
 
     class Meta:
-        db_table = "clinician_organization_account_invitation"
+        db_table = "clinician_invitation"
 
 
 
