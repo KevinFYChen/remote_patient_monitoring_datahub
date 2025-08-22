@@ -8,11 +8,13 @@ class IsOrganizationAdminForOrg(BasePermission):
     def has_permission(self, request, view):
         org_id = view.kwargs.get('organization_id')
         return (
-            request.user.has_perm('organization.is_organization_admin')
+            org_id is not None 
             and OrganizationMembership.objects.filter(
                 user=request.user,
                 organization=org_id,
                 status='active',
                 role='admin'
             ).exists()
+            and request.user.is_authenticated
+            
         )

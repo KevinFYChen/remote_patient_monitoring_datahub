@@ -11,4 +11,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('<uuid:organization_id>/invitations/', views.SendClinicianInvitationView.as_view(), name='send-invitation'),
     path('invitations/<uuid:invitation_token>/accept/', views.AcceptClinicianInvitationView.as_view(), name='accept-invitation'),
+    path('<uuid:organization_id>/admins/', views.ListCreateOrganizationAdminView.as_view(), name='list-create-organization-admin'),
 ]

@@ -1,14 +1,18 @@
-import re
-from django.shortcuts import render
+from uuid import UUID
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from rest_framework import generics, permissions
 from accounts.permissions import IsOrganizationAdminForOrg
+from accounts.models import RpmUser
 from .models import Organization, ClinicianInvitation, OrganizationMembership
 from datetime import timedelta, datetime, timezone
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ClinicianInvitationSerializer, OrganizationSerializer
+from accounts.serializers import RpmClinicianSerializer
+from .serializers import ClinicianInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
 from rest_framework.viewsets import ModelViewSet
+from django.db import transaction
+import os
 
 
 class OrganizationViewSet(ModelViewSet):
@@ -19,13 +23,68 @@ class OrganizationViewSet(ModelViewSet):
     lookup_url_kwarg = 'organization_id'
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    permission_classes = [permissions.IsAuthenticated & permissions.IsAdminUser]
+    
+    def get_permissions(self):
+        if self.action in ['create', 'list', 'destroy']:
+            return [permissions.IsAdminUser()]
+        if self.action in ['retrieve', 'update', 'partial_update']:
+            return [(permissions.IsAdminUser | IsOrganizationAdminForOrg)()]
+        return super().get_permissions()
+
+class ListCreateOrganizationAdminView(generics.ListCreateAPIView):
+    """
+    Creates an organization admin
+    """
+    serializer_class = OrganizationMembershipSerializer
+    permission_classes = [permissions.IsAdminUser | IsOrganizationAdminForOrg]
+
+    def get_queryset(self):
+        return OrganizationMembership.objects.filter(
+            organization_id=self.kwargs['organization_id'],
+            role='admin'
+        )
+
+    def post(self, request, *args, **kwargs):
+        """
+        Creates an organiation admin
+        """
+        user_serializer = RpmClinicianSerializer(data=request.data, context={'request': request})
+        user_serializer.is_valid(raise_exception=True)
+
+        organization = get_object_or_404(Organization, record_id=kwargs['organization_id'])
+
+        with transaction.atomic():
+            email = user_serializer.validated_data['email']
+            user = RpmUser.objects.filter(email=email).first()
+            if not user:
+                user = user_serializer.save()
+
+            membership, created = OrganizationMembership.objects.get_or_create(
+                user=user,
+                organization=organization,
+                defaults={
+                    'role': 'admin',
+                    'status': 'active',
+                    'approved_at': datetime.now(tz=timezone.utc),
+                    'approved_by': request.user,
+                },
+            )
+
+            if not created and (membership.role != 'admin' or membership.status != 'active'):
+                membership.role = 'admin'
+                membership.status = 'active'
+                membership.approved_at = datetime.now(tz=timezone.utc)
+                membership.approved_by = request.user
+                membership.save(update_fields=['role', 'status', 'approved_at', 'approved_by'])
+
+        data = self.serializer_class(membership).data
+        return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 class SendClinicianInvitationView(generics.ListCreateAPIView):
     """
     Creates an invitation for a clinician to create an account in an organization
     """
-    permission_classes = [permissions.IsAuthenticated & IsOrganizationAdminForOrg]
+    permission_classes = [IsOrganizationAdminForOrg]
     serializer_class = ClinicianInvitationSerializer
 
     def post(self, request, *args, **kwargs):
