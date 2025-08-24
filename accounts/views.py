@@ -1,8 +1,11 @@
-from rest_framework import generics, permissions
-from .serializers import RpmUserSerializer, RpmPatientSerializer, RpmClinicianSerializer, RpmAnalystSerializer
+from rest_framework import generics, permissions, mixins
+from .serializers import RpmUserSerializer, RpmPatientSerializer, RpmClinicianSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .models import LoginAttempt, RpmUser
-from .serializers import LoginAttemptSerializer
+from .models import LoginAttempt, RpmUser, ClinicianProfile
+from .serializers import LoginAttemptSerializer, ClinicianProfileSerializer
+from .permissions import IsUserForClinicianProfile, IsClinician
+from rest_framework.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404
 
 class CreatePatientView(generics.CreateAPIView):
     serializer_class = RpmPatientSerializer
@@ -49,3 +52,37 @@ class LoginAttemptsListView(generics.ListAPIView):
 
     def get_queryset(self):
         return LoginAttempt.objects.all()
+
+class ClinicianProfileView(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    generics.GenericAPIView
+):
+    serializer_class = ClinicianProfileSerializer
+    permission_classes = [IsClinician]
+
+    def get_object(self):
+        return get_object_or_404(ClinicianProfile, user=self.request.user)
+    
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'clinician_profile'):
+            raise PermissionDenied("Clinician profile already exists.")
+        serializer.save(user=self.request.user)
+    
+    def perform_update(self, serializer):
+        if not hasattr(self.request.user, 'clinician_profile'):
+            raise PermissionDenied("Clinician profile does not exist.")
+        serializer.save()
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)

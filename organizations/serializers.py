@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from .models import ClinicianInvitation, Organization, OrganizationMembership
+from .models import OrganizationInvitation, Organization, OrganizationMembership
 
-class ClinicianInvitationSerializer(serializers.ModelSerializer):
-    clinician_email = serializers.EmailField()
+class OrganizationInvitationSerializer(serializers.ModelSerializer):
+    invitee_email = serializers.EmailField()
     class Meta:
-        model = ClinicianInvitation
-        fields = ['clinician_email', 'organization', 'invited_by', 'status', 'expires_at']
+        model = OrganizationInvitation
+        fields = ['invitee_email', 'organization', 'invited_by', 'status', 'expires_at']
 
 class OrganizationSerializer(serializers.ModelSerializer):
     organization_id = serializers.UUIDField(source='record_id', read_only=True)

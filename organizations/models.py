@@ -71,19 +71,19 @@ class OrganizationMembership(TimeStampedModel):
         ]
 
 
-class ClinicianInvitation(TimeStampedModel):
+class OrganizationInvitation(TimeStampedModel):
     """
     A resource that represents an invitation to create an account for a clinician in an organization
     """
     record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     expires_at = models.DateTimeField()
-    clinician_email = models.EmailField()
+    invitee_email = models.EmailField()
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     invited_by = models.ForeignKey(RpmUser, on_delete=models.CASCADE) # A user can receive multiple invitations.
     status = models.CharField(max_length=255, choices=CLINICIAN_INVITATION)
 
     class Meta:
-        db_table = "clinician_invitation"
+        db_table = "organization_invitation"
 
 
 

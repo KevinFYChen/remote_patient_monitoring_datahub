@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import RpmUser, LoginAttempt
+from .models import RpmUser, LoginAttempt, ClinicianProfile
 from django.contrib.auth.models import Group
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import RoleChoices
@@ -18,11 +18,7 @@ class RpmUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = RpmUser
         fields = ['email', 'is_active', 'is_staff', 'password','role']
-        extra_kwargs = {
-            'role': {'read_only': True},
-            'is_active': {'read_only': True},
-            'is_staff': {'read_only': True},
-        }
+        read_only_fields = ['role', 'is_active', 'is_staff']
 
 class RpmPatientSerializer(RpmUserSerializer):
     def create(self, validated_data):
@@ -31,6 +27,16 @@ class RpmPatientSerializer(RpmUserSerializer):
 class RpmClinicianSerializer(RpmUserSerializer):
     def create(self, validated_data):
         return super().create(RoleChoices.CLINICIAN, validated_data)
+
+class ClinicianProfileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ClinicianProfile
+        fields = [
+            "user", 'first_name', 'last_name', 'npi_number', 'medical_license_number', 'license_state', 
+            'license_expiration_date', 'specialty', 'credentials_verified', 'verification_date', 
+            'verified_by']
+        read_only_fields = ["user","credentials_verified",'verification_date', 'verified_by']
 
 class RpmAnalystSerializer(RpmUserSerializer):
     def create(self, validated_data):

@@ -8,4 +8,5 @@ urlpatterns = [
     path('token/refresh/', views.RefreshTokenView.as_view(), name='refresh'),
     path('me/', views.MeView.as_view(), name='me'),
     path('login-attempts/', views.LoginAttemptsListView.as_view(), name='login-attempts'),
+    path('clinician-profile/', views.ClinicianProfileView.as_view(), name='clinician-profile'),
 ]

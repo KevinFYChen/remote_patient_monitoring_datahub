@@ -1,18 +1,19 @@
-from uuid import UUID
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from rest_framework import generics, permissions
 from accounts.permissions import IsOrganizationAdminForOrg
 from accounts.models import RpmUser
-from .models import Organization, ClinicianInvitation, OrganizationMembership
+from .models import Organization, OrganizationInvitation, OrganizationMembership
 from datetime import timedelta, datetime, timezone
 from rest_framework.response import Response
 from rest_framework import status
 from accounts.serializers import RpmClinicianSerializer
-from .serializers import ClinicianInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
+from .serializers import OrganizationInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
 from rest_framework.viewsets import ModelViewSet
 from django.db import transaction
 import os
+from accounts.models import RoleChoices, ClinicianProfile
+from accounts.serializers import ClinicianProfileSerializer
 
 
 class OrganizationViewSet(ModelViewSet):
@@ -80,22 +81,23 @@ class ListCreateOrganizationAdminView(generics.ListCreateAPIView):
         data = self.serializer_class(membership).data
         return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
-class SendClinicianInvitationView(generics.ListCreateAPIView):
+class OrganizationInvitationListCreateView(generics.ListCreateAPIView):
     """
     Creates an invitation for a clinician to create an account in an organization
     """
     permission_classes = [IsOrganizationAdminForOrg]
-    serializer_class = ClinicianInvitationSerializer
+    serializer_class = OrganizationInvitationSerializer
+    queryset = OrganizationInvitation.objects.all()
 
     def post(self, request, *args, **kwargs):
         """
         Create an invitation for a clinician to create an account in an organization
         """
-        clinician_email = request.data.get('clinician_email')
+        invitee_email = request.data.get('invitee_email')
         organization_id = kwargs.get('organization_id')
         # check if the invitation already exists
-        if ClinicianInvitation.objects.filter(
-            clinician_email=clinician_email,
+        if OrganizationInvitation.objects.filter(
+            invitee_email=invitee_email,
             organization_id=organization_id,
             status='pending',
             expires_at__gt=datetime.now(tz=timezone.utc)
@@ -104,7 +106,7 @@ class SendClinicianInvitationView(generics.ListCreateAPIView):
         
         # check if the clinician already has an account
         if OrganizationMembership.objects.filter(
-            user__email=clinician_email,
+            user__email=invitee_email,
             organization_id=organization_id,
             status__in=['active', 'pending']
         ).exists():
@@ -113,9 +115,9 @@ class SendClinicianInvitationView(generics.ListCreateAPIView):
         # Expiration time is 1 day from now, in UTC
         expires_at = datetime.now(tz=timezone.utc) + timedelta(days=1)
 
-        invitation_obj = ClinicianInvitation(
+        invitation_obj = OrganizationInvitation(
             expires_at=expires_at,
-            clinician_email=clinician_email,
+            invitee_email=invitee_email,
             organization_id=organization_id,
             invited_by=request.user,
             status='pending'
@@ -126,24 +128,7 @@ class SendClinicianInvitationView(generics.ListCreateAPIView):
 
         # send the invitation email
         send_invitation_email(invitation_obj)
-
         return Response({'message': 'Invitation created successfully'}, status=status.HTTP_201_CREATED)
-
-class AcceptClinicianInvitationView(generics.CreateAPIView):
-    """
-    Accepts an invitation to create an account for a clinician
-    """
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        """
-        Accepts an invitation to create an account for a clinician
-        """
-        invitation_token = kwargs.get('invitation_token')
-        invitation_obj = ClinicianInvitation.objects.get(
-            record_id=invitation_token
-        )
-
 
 def send_invitation_email(invitation_obj):
     """
@@ -159,3 +144,73 @@ def send_invitation_email(invitation_obj):
     os.makedirs(os.path.dirname(invitation_file_path), exist_ok=True)
     with open(invitation_file_path, 'w') as f:
         f.write(invitation_url)
+
+
+class AcceptOrganizationInvitationView(generics.APIView):
+    """
+    Accepts an invitation to create an account for a organization member
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        """
+        Accepts an invitation to create an account for a clinician
+        """
+        invitation_token = kwargs.get('invitation_token')
+        try:
+            invitation_obj = OrganizationInvitation.objects.get(
+                record_id=invitation_token,
+                expires_at__gt=datetime.now(tz=timezone.utc),
+                status="pending"
+            )
+        except OrganizationInvitation.DoesNotExist:
+            return Response({'error': 'Active invitation not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If organization membership already exists, return a 400 error
+        if OrganizationMembership.objects.filter(
+            user=invitation_obj.invitee_email,
+            organization=invitation_obj.organization
+        ).exists():
+            return Response({'error': 'Clinician already has an account'}, status=status.HTTP_409_CONFLICT)
+        
+        # If user does not exists, create a new user
+        invitee_user = RpmUser.objects.filter(email=invitation_obj.invitee_email).first()
+
+        with transaction.atomic():
+            # If user does not exists, create a new user
+            if not invitee_user:
+                clinician_serializer = RpmClinicianSerializer(
+                    data={
+                        'email': invitation_obj.invitee_email,
+                        'password': None,
+                        'role': RoleChoices.CLINICIAN
+                    }
+                )
+                clinician_serializer.is_valid(raise_exception=True)
+                invitee_user = clinician_serializer.save()
+            
+            # create a new organization membership
+            org_membership_serializer = OrganizationMembershipSerializer(
+                data={
+                    "user":invitee_user,
+                    "organization": invitation_obj.organization,
+                    "role": "clinician",
+                    "status": "pending",
+                    "approved_at": None,
+                    "approved_by": None,
+                }
+            )
+            org_membership_serializer.is_valid(raise_exception=True)
+            org_membership_serializer.save()
+            
+            # update the invitation status
+            invitation_obj.status = "accepted"
+            invitation_obj.save()
+        
+        return Response(
+            {
+                'message': 'Registration successful, your account is pending approval',
+                'organization_membership': org_membership_serializer.data
+            }, 
+            status=status.HTTP_201_CREATED
+        )

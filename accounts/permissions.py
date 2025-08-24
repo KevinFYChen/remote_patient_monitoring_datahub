@@ -1,5 +1,6 @@
 from rest_framework.permissions import BasePermission
 from organizations.models import OrganizationMembership
+from .models import RoleChoices
 
 class IsOrganizationAdminForOrg(BasePermission):
     """
@@ -16,5 +17,25 @@ class IsOrganizationAdminForOrg(BasePermission):
                 role='admin'
             ).exists()
             and request.user.is_authenticated
-            
+        )
+
+class IsUserForClinicianProfile(BasePermission):
+    """
+    Verifies if the user is the owner of the clinician profile
+    """
+    def has_permission(self, request, view):
+        clinician_profile_id = view.kwargs.get('clinician_profile_id')
+        return (
+            request.user.is_authenticated
+            and request.user.clinician_profile.record_id == clinician_profile_id
+        )
+
+class IsClinician(BasePermission):
+    """
+    Verifies if the user is a clinician
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == RoleChoices.CLINICIAN
         )
