@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, views, viewsets
 from accounts.permissions import IsOrganizationAdminForOrg
 from accounts.models import RpmUser
 from .models import Organization, OrganizationInvitation, OrganizationMembership
@@ -9,14 +9,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from accounts.serializers import RpmClinicianSerializer
 from .serializers import OrganizationInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
-from rest_framework.viewsets import ModelViewSet
 from django.db import transaction
 import os
-from accounts.models import RoleChoices, ClinicianProfile
-from accounts.serializers import ClinicianProfileSerializer
 
 
-class OrganizationViewSet(ModelViewSet):
+class OrganizationViewSet(viewsets.ModelViewSet):
     """
     Viewset for the Organization model
     """
@@ -146,7 +143,7 @@ def send_invitation_email(invitation_obj):
         f.write(invitation_url)
 
 
-class AcceptOrganizationInvitationView(generics.APIView):
+class AcceptOrganizationInvitationView(views.APIView):
     """
     Accepts an invitation to create an account for a organization member
     """
@@ -166,24 +163,25 @@ class AcceptOrganizationInvitationView(generics.APIView):
         except OrganizationInvitation.DoesNotExist:
             return Response({'error': 'Active invitation not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        # If user does not exists, create a new user
+        invitee_user = RpmUser.objects.filter(email=invitation_obj.invitee_email).first()
+
         # If organization membership already exists, return a 400 error
-        if OrganizationMembership.objects.filter(
-            user=invitation_obj.invitee_email,
+        if invitee_user and OrganizationMembership.objects.filter(
+            user=invitee_user,
             organization=invitation_obj.organization
         ).exists():
             return Response({'error': 'Clinician already has an account'}, status=status.HTTP_409_CONFLICT)
-        
-        # If user does not exists, create a new user
-        invitee_user = RpmUser.objects.filter(email=invitation_obj.invitee_email).first()
 
         with transaction.atomic():
             # If user does not exists, create a new user
             if not invitee_user:
+                password = request.data.get('password')
                 clinician_serializer = RpmClinicianSerializer(
                     data={
                         'email': invitation_obj.invitee_email,
                         'password': None,
-                        'role': RoleChoices.CLINICIAN
+                        'password': password
                     }
                 )
                 clinician_serializer.is_valid(raise_exception=True)
@@ -192,16 +190,15 @@ class AcceptOrganizationInvitationView(generics.APIView):
             # create a new organization membership
             org_membership_serializer = OrganizationMembershipSerializer(
                 data={
-                    "user":invitee_user,
-                    "organization": invitation_obj.organization,
-                    "role": "clinician",
+                    "role": "member",
                     "status": "pending",
-                    "approved_at": None,
-                    "approved_by": None,
                 }
-            )
+                )
             org_membership_serializer.is_valid(raise_exception=True)
-            org_membership_serializer.save()
+            org_membership_serializer.save(
+                user=invitee_user,
+                organization=invitation_obj.organization,
+            )
             
             # update the invitation status
             invitation_obj.status = "accepted"

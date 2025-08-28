@@ -14,6 +14,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
         fields = ['organization_id', 'name', 'address', 'contact_number', 'description', 'organization_type', 'active']
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    organization = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = OrganizationMembership
         fields = ['user', 'organization', 'role', 'status', 'approved_at', 'approved_by']

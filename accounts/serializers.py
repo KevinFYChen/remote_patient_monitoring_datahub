@@ -22,11 +22,11 @@ class RpmUserSerializer(serializers.ModelSerializer):
 
 class RpmPatientSerializer(RpmUserSerializer):
     def create(self, validated_data):
-        return super().create(RoleChoices.PATIENT, validated_data)
+        return super().create("patient", validated_data)
 
 class RpmClinicianSerializer(RpmUserSerializer):
     def create(self, validated_data):
-        return super().create(RoleChoices.CLINICIAN, validated_data)
+        return super().create("clinician", validated_data)
 
 class ClinicianProfileSerializer(serializers.ModelSerializer):
 
