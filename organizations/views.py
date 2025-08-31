@@ -1,3 +1,4 @@
+import os
 from rest_framework import mixins
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
@@ -8,12 +9,11 @@ from .models import Organization, OrganizationInvitation, OrganizationMembership
 from datetime import timedelta, datetime, timezone
 from rest_framework.response import Response
 from rest_framework import status
-from accounts.serializers import RpmClinicianSerializer
+from accounts.serializers import RpmClinicianSerializer, ClinicianProfileSerializer
 from .serializers import OrganizationInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
 from django.db import transaction
-import os
-from accounts.serializers import ClinicianProfileSerializer
 from accounts.models import ClinicianProfile
+
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -209,6 +209,7 @@ class AcceptOrganizationInvitationView(views.APIView):
         return Response(
             {
                 'message': 'Registration successful, your account is pending approval',
+                'user': RpmClinicianSerializer(invitee_user).data,
                 'organization_membership': org_membership_serializer.data
             }, 
             status=status.HTTP_201_CREATED

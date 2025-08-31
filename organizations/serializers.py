@@ -12,6 +12,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = ['organization_id', 'name', 'address', 'contact_number', 'description', 'organization_type', 'active']
+        read_only_fields = ['active']
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
