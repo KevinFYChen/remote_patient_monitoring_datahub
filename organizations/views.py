@@ -1,3 +1,4 @@
+from rest_framework import mixins
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from rest_framework import generics, permissions, views, viewsets
@@ -11,6 +12,8 @@ from accounts.serializers import RpmClinicianSerializer
 from .serializers import OrganizationInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
 from django.db import transaction
 import os
+from accounts.serializers import ClinicianProfileSerializer
+from accounts.models import ClinicianProfile
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
@@ -31,7 +34,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
 class ListCreateOrganizationAdminView(generics.ListCreateAPIView):
     """
-    Creates an organization admin
+    List or Create an organization admin
     """
     serializer_class = OrganizationMembershipSerializer
     permission_classes = [permissions.IsAdminUser | IsOrganizationAdminForOrg]
@@ -180,7 +183,6 @@ class AcceptOrganizationInvitationView(views.APIView):
                 clinician_serializer = RpmClinicianSerializer(
                     data={
                         'email': invitation_obj.invitee_email,
-                        'password': None,
                         'password': password
                     }
                 )
@@ -211,3 +213,74 @@ class AcceptOrganizationInvitationView(views.APIView):
             }, 
             status=status.HTTP_201_CREATED
         )
+
+class ApproveClinicianMembershipView(views.APIView):
+    """
+    Verifies the organization membership and the clinician profile of a clinician
+    If the clinician profile was already verified, or the membership is already approved,
+    It will still return a 200 status code. Hence this endpoint is idempotent.
+    """
+    permission_classes = [IsOrganizationAdminForOrg]
+
+    def post(self, request, organization_id, membership_id):
+        membership = get_object_or_404(
+            OrganizationMembership, 
+            record_id=membership_id,
+            organization_id=organization_id
+            )
+        user = membership.user
+
+        if not hasattr(user, 'clinician_profile'):
+            return Response({'error': 'Clinician profile does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not user.clinician_profile.credentials_verified:
+            return Response({'error': 'Clinician profile is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if membership.status != 'pending':
+            return Response({'error': 'Clinician membership status is not pending'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+        with transaction.atomic():
+            membership.status = 'active'
+            membership.approved_at = datetime.now(tz=timezone.utc)
+            membership.approved_by = request.user
+            membership.save(update_fields=['status', 'approved_at', 'approved_by'])
+        
+        return Response(
+            {
+                'message': 'Clinician membership approved',
+                'organization_membership': self.serializer_class(membership).data
+            }, 
+            status=status.HTTP_200_OK
+            )
+
+class UpdateRetrieveListOrganizationMembersViewset(
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
+    permission_classes = [permissions.IsAdminUser | IsOrganizationAdminForOrg]
+    serializer_class = OrganizationMembershipSerializer
+    
+    def get_queryset(self):
+        return OrganizationMembership.objects.filter(
+            organization_id=self.kwargs['organization_id'],
+            status__in=['active', 'pending'],
+        )
+    
+    def get_object(self):
+        return get_object_or_404(OrganizationMembership, record_id=self.kwargs['membership_id'])
+        
+class ListOrganizationClinicianProfilesView(generics.ListAPIView):
+    """
+    View class to list clinician profiles for an organization
+    """
+    permission_classes = [permissions.IsAdminUser | IsOrganizationAdminForOrg]
+    serializer_class = ClinicianProfileSerializer
+
+    def get_queryset(self):
+        return ClinicianProfile.objects.filter(
+            user__organization_membership__organization_id=self.kwargs['organization_id']
+        ).distinct()
+

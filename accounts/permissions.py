@@ -10,24 +10,27 @@ class IsOrganizationAdminForOrg(BasePermission):
         org_id = view.kwargs.get('organization_id')
         return (
             org_id is not None 
+            and request.user.is_authenticated
             and OrganizationMembership.objects.filter(
                 user=request.user,
                 organization=org_id,
                 status='active',
                 role='admin'
             ).exists()
-            and request.user.is_authenticated
         )
 
-class IsUserForClinicianProfile(BasePermission):
+class IsOrganizationAdmin(BasePermission):
     """
-    Verifies if the user is the owner of the clinician profile
+    Verifies if the user is an organization admin
     """
     def has_permission(self, request, view):
-        clinician_profile_id = view.kwargs.get('clinician_profile_id')
         return (
             request.user.is_authenticated
-            and request.user.clinician_profile.record_id == clinician_profile_id
+            and OrganizationMembership.objects.filter(
+                user=request.user,
+                status='active',
+                role='admin'
+            ).exists()
         )
 
 class IsClinician(BasePermission):

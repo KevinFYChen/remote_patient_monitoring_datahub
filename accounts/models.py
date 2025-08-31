@@ -66,7 +66,7 @@ class ClinicianProfile(TimeStampedModel):
     license_expiration_date = models.DateField()
     specialty = models.CharField(max_length=255)
     credentials_verified = models.BooleanField(default=False)
-    verification_date = models.DateField(null=True, blank=True)
+    verification_datetime = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(
         RpmUser, 
         on_delete=models.SET_NULL, 
@@ -92,3 +92,4 @@ class LoginAttempt(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} @ {self.timestamp} - {self.success}"
+

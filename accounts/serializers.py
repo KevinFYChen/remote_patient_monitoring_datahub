@@ -29,14 +29,15 @@ class RpmClinicianSerializer(RpmUserSerializer):
         return super().create("clinician", validated_data)
 
 class ClinicianProfileSerializer(serializers.ModelSerializer):
+    clinician_profile_id = serializers.UUIDField(source='record_id')
 
     class Meta:
         model = ClinicianProfile
         fields = [
-            "user", 'first_name', 'last_name', 'npi_number', 'medical_license_number', 'license_state', 
-            'license_expiration_date', 'specialty', 'credentials_verified', 'verification_date', 
+            "clinician_profile_id","user", 'first_name', 'last_name', 'npi_number', 'medical_license_number', 'license_state', 
+            'license_expiration_date', 'specialty', 'credentials_verified', 'verification_datetime', 
             'verified_by']
-        read_only_fields = ["user","credentials_verified",'verification_date', 'verified_by']
+        read_only_fields = ["clinician_profile_id", "user","credentials_verified",'verification_datetime', 'verified_by']
 
 class RpmAnalystSerializer(RpmUserSerializer):
     def create(self, validated_data):

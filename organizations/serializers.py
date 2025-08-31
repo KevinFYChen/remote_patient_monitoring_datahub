@@ -16,6 +16,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
     organization = serializers.PrimaryKeyRelatedField(read_only=True)
+    membership_id = serializers.UUIDField(source='record_id', read_only=True)
     class Meta:
         model = OrganizationMembership
-        fields = ['user', 'organization', 'role', 'status', 'approved_at', 'approved_by']
+        fields = ['membership_id', 'user', 'organization', 'role', 'status', 'approved_at', 'approved_by']
