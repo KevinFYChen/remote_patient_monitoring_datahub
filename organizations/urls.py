@@ -20,4 +20,5 @@ urlpatterns = [
         {'get': 'retrieve', 'put': 'update', 'patch': 'partial_update'}
     ), name='organization-members-retrieve-update'),
     path('<uuid:organization_id>/members/<uuid:membership_id>/approve/', views.ApproveClinicianMembershipView.as_view(), name='approve-clinician-membership'),
+    path('<uuid:organization_id>/patient-consent/', views.CreatePatientOrganizationConsentView.as_view(), name='create-patient-organization-consent'),
 ]

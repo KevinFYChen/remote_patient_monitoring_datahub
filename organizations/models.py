@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from common.models import TimeStampedModel
 from accounts.models import RpmUser
+from patients.models import Patient
 
 ORGANIZATION_MEMBERSHIP_ROLE_CHOICES = [
     ("admin", "Organization Admin"),
@@ -84,5 +85,18 @@ class OrganizationInvitation(TimeStampedModel):
     class Meta:
         db_table = "organization_invitation"
 
+class PatientOrganizationConsent(TimeStampedModel):
+    """
+    A resource that represents the consent of a patient to share their data with an organization
+    """
+    record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    consented_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    is_revoked = models.BooleanField(default=False)
+    revoked_at = models.DateTimeField(blank=True, null=True)
 
-
+    class Meta:
+        db_table = "patient_organization_consent"
+        unique_together = ('patient', 'organization')

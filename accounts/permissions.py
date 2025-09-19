@@ -61,6 +61,16 @@ class IsClinician(BasePermission):
             and request.user.role == RoleChoices.CLINICIAN
         )
 
+class IsPatient(BasePermission):
+    """
+    Verifies if the user is a patient
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == RoleChoices.PATIENT
+        )
+
 class IsClinicianForPatient(BasePermission):
     """
     Verifies if the user is a clinician for the patient

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import OrganizationInvitation, Organization, OrganizationMembership
+from .models import OrganizationInvitation, Organization, OrganizationMembership, PatientOrganizationConsent
 
 class OrganizationInvitationSerializer(serializers.ModelSerializer):
     invitee_email = serializers.EmailField()
@@ -21,3 +21,12 @@ class OrganizationMembershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganizationMembership
         fields = ['membership_id', 'user', 'organization', 'role', 'status', 'approved_at', 'approved_by']
+
+
+class PatientOrganizationConsentSerializer(serializers.ModelSerializer):
+    consent_id = serializers.UUIDField(source='record_id', read_only=True)
+
+    class Meta:
+        model = PatientOrganizationConsent
+        fields = ['consent_id', 'patient', 'organization', 'consented_at', 'expires_at', 'is_revoked', 'revoked_at']
+        read_only_fields = ['patient', 'organization']

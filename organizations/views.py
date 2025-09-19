@@ -3,14 +3,14 @@ from rest_framework import mixins
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from rest_framework import generics, permissions, views, viewsets
-from accounts.permissions import IsOrganizationAdminForOrg
+from accounts.permissions import IsOrganizationAdminForOrg, IsPatient
 from accounts.models import RpmUser
 from .models import Organization, OrganizationInvitation, OrganizationMembership
 from datetime import timedelta, datetime, timezone
 from rest_framework.response import Response
 from rest_framework import status
 from accounts.serializers import RpmClinicianSerializer, ClinicianProfileSerializer
-from .serializers import OrganizationInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer
+from .serializers import OrganizationInvitationSerializer, OrganizationSerializer, OrganizationMembershipSerializer, PatientOrganizationConsentSerializer
 from django.db import transaction
 from accounts.models import ClinicianProfile
 
@@ -285,3 +285,17 @@ class ListOrganizationClinicianProfilesView(generics.ListAPIView):
             user__organization_membership__organization_id=self.kwargs['organization_id']
         ).distinct()
 
+class CreatePatientOrganizationConsentView(generics.CreateAPIView):
+    """
+    Creates a patient organization consent
+    """
+    permission_classes = [IsPatient]
+    serializer_class = PatientOrganizationConsentSerializer
+
+    def perform_create(self, serializer):
+        # Ensure that user is a patient
+        if not self.request.user.patient:
+            return Response({'error': f'Patient profile not found for user {request.user}'}, status=status.HTTP_404_NOT_FOUND)
+        # Ensure organization exists
+        organization = get_object_or_404(Organization, record_id=self.kwargs.get('organization_id'))
+        serializer.save(patient=self.request.user.patient, organization=organization)
