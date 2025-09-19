@@ -16,8 +16,8 @@ class ListRpmUsersView(generics.ListAPIView):
     serializer_class = RpmUserSerializer
     permission_classes = [permissions.IsAuthenticated & permissions.IsAdminUser]
     queryset = RpmUser.objects.all()
-    
-class CreatePatientView(generics.CreateAPIView):
+
+class CreatePatientUserView(generics.CreateAPIView):
     serializer_class = RpmPatientSerializer
     permission_classes = [permissions.AllowAny]
 

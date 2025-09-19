@@ -30,7 +30,6 @@ class Organization(TimeStampedModel):
     name = models.CharField(max_length=255)
     address = models.TextField(blank=True, null=True)
     contact_number = models.CharField(max_length=255, blank=True, null=True)
-    raw_fhir_json = models.JSONField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     organization_type = models.CharField(max_length=255)
     active = models.BooleanField(default=True)
