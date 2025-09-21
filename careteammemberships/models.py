@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from django.db import models
 from patients.models import Patient
 from accounts.models import RpmUser
@@ -22,7 +23,8 @@ class CareTeamMembership(TimeStampedModel):
     role = models.CharField(max_length=255, help_text="The role of the member in the care team, corresponds to CareTeam.participant.role")
     status = models.CharField(max_length=255, choices=CareTeamMembershipStatus.choices)
     managing_organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    assigned_at = models.DateTimeField()
+    assigned_by = models.ForeignKey(RpmUser, on_delete=models.CASCADE)
+    assigned_at = models.DateTimeField(default=datetime.now(tz=timezone.utc))
     reason_for_assignment = models.TextField(blank=True, null=True, help_text="Why the care team exists for this patient")
 
     class Meta:

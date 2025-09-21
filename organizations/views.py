@@ -261,6 +261,9 @@ class UpdateRetrieveListOrganizationMembersViewset(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
 ):
+    """
+    Viewset to update, retrieve, and list organization members
+    """
     permission_classes = [permissions.IsAdminUser | IsOrganizationAdminForOrg]
     serializer_class = OrganizationMembershipSerializer
     
@@ -298,4 +301,6 @@ class CreatePatientOrganizationConsentView(generics.CreateAPIView):
             return Response({'error': f'Patient profile not found for user {request.user}'}, status=status.HTTP_404_NOT_FOUND)
         # Ensure organization exists
         organization = get_object_or_404(Organization, record_id=self.kwargs.get('organization_id'))
-        serializer.save(patient=self.request.user.patient, organization=organization)
+        serializer.save(
+            patient=self.request.user.patient, 
+            organization=organization)

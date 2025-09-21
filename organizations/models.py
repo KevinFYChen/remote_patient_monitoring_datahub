@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone, timedelta
 from django.db import models
 from common.models import TimeStampedModel
 from accounts.models import RpmUser
@@ -92,8 +93,8 @@ class PatientOrganizationConsent(TimeStampedModel):
     record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    consented_at = models.DateTimeField()
-    expires_at = models.DateTimeField()
+    consented_at = models.DateTimeField(default=datetime.now(tz=timezone.utc))
+    expires_at = models.DateTimeField(default=datetime.now(tz=timezone.utc) + timedelta(days=365))
     is_revoked = models.BooleanField(default=False)
     revoked_at = models.DateTimeField(blank=True, null=True)
 

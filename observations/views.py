@@ -42,8 +42,6 @@ class ClinicianObservationViewSet(
 ):
     serializer_class = ObservationSerializer
     permission_classes = [IsClinicianForPatient]
-    lookup_field = 'record_id'
-    lookup_url_kwarg = 'patient_id'
 
     def get_queryset(self):
         return Observation.objects.filter(
