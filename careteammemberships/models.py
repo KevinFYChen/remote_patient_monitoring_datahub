@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime, timezone
 from django.db import models
 from patients.models import Patient
-from accounts.models import RpmUser
+from accounts.models import ClinicianProfile
 from common.models import TimeStampedModel
-from organizations.models import Organization
+from organizations.models import Organization, OrganizationMembership
 
 
 class CareTeamMembershipStatus(models.TextChoices):
@@ -19,13 +19,14 @@ class CareTeamMembership(TimeStampedModel):
     """
     record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(Patient, related_name='care_team_memberships', on_delete=models.CASCADE)
-    clinician = models.ForeignKey(RpmUser, related_name='care_team_memberships', on_delete=models.CASCADE)
+    clinician = models.ForeignKey(ClinicianProfile, related_name='care_team_memberships', on_delete=models.CASCADE)
     role = models.CharField(max_length=255, help_text="The role of the member in the care team, corresponds to CareTeam.participant.role")
     status = models.CharField(max_length=255, choices=CareTeamMembershipStatus.choices)
     managing_organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    assigned_by = models.ForeignKey(RpmUser, on_delete=models.CASCADE)
+    assigned_by = models.ForeignKey(OrganizationMembership, on_delete=models.CASCADE)
     assigned_at = models.DateTimeField(default=datetime.now(tz=timezone.utc))
     reason_for_assignment = models.TextField(blank=True, null=True, help_text="Why the care team exists for this patient")
 
     class Meta:
+        unique_together = ('patient', 'clinician', 'managing_organization')
         db_table = "care_team_membership"

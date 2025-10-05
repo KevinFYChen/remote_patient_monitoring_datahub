@@ -66,8 +66,11 @@ class ListCreateOrganizationAdminView(generics.ListCreateAPIView):
                 defaults={
                     'role': 'admin',
                     'status': 'active',
-                    'approved_at': datetime.now(tz=timezone.utc),
-                    'approved_by': request.user,
+                    'approved_by': request.user.organization_memberships.filter(
+                        organization_id=organization.record_id,
+                        status='active'
+                    ).first(),
+                    'approved_at': datetime.now(tz=timezone.utc)
                 },
             )
 
@@ -75,7 +78,10 @@ class ListCreateOrganizationAdminView(generics.ListCreateAPIView):
                 membership.role = 'admin'
                 membership.status = 'active'
                 membership.approved_at = datetime.now(tz=timezone.utc)
-                membership.approved_by = request.user
+                membership.approved_by = request.user.organization_memberships.filter(
+                    organization_id=organization.record_id,
+                    status='active'
+                ).first()
                 membership.save(update_fields=['role', 'status', 'approved_at', 'approved_by'])
 
         data = self.serializer_class(membership).data
@@ -119,7 +125,10 @@ class OrganizationInvitationListCreateView(generics.ListCreateAPIView):
             expires_at=expires_at,
             invitee_email=invitee_email,
             organization_id=organization_id,
-            invited_by=request.user,
+            invited_by=request.user.organization_memberships.filter(
+                organization_id=organization_id,
+                status='active'
+            ).first(),
             status='pending'
         )
         # validate the invitation object and save it
@@ -221,6 +230,7 @@ class ApproveClinicianMembershipView(views.APIView):
     If the clinician profile was already verified, or the membership is already approved,
     It will still return a 200 status code. Hence this endpoint is idempotent.
     """
+    serializer_class = OrganizationMembershipSerializer
     permission_classes = [IsOrganizationAdminForOrg]
 
     def post(self, request, organization_id, membership_id):
@@ -244,7 +254,10 @@ class ApproveClinicianMembershipView(views.APIView):
         with transaction.atomic():
             membership.status = 'active'
             membership.approved_at = datetime.now(tz=timezone.utc)
-            membership.approved_by = request.user
+            membership.approved_by = request.user.organization_memberships.filter(
+                organization_id=organization_id,
+                status='active'
+            ).first()
             membership.save(update_fields=['status', 'approved_at', 'approved_by'])
         
         return Response(

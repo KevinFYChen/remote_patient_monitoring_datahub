@@ -77,13 +77,19 @@ class IsClinicianForPatient(BasePermission):
     """
     def has_permission(self, request, view):
         patient_id = view.kwargs.get('patient_id')
-        if not patient_id:
+        user = request.user
+        try:
+            # user may not have a clinician profile or a care team membership
+            care_team_membership = user.clinician_profile.care_team_memberships.filter(
+                patient_id=patient_id,
+                status=CareTeamMembershipStatus.ACTIVE
+            )
+        except:
+            # If no care team membership or clinician profile, return False
             return False
+        
         return (
             request.user.is_authenticated
             and request.user.role == RoleChoices.CLINICIAN
-            and request.user.care_team_memberships.filter(
-                patient_id=patient_id,
-                status=CareTeamMembershipStatus.ACTIVE
-            ).exists()
+            and care_team_membership.exists()
         )

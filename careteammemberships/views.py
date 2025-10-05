@@ -1,20 +1,23 @@
 from django.shortcuts import render
 from accounts.permissions import IsOrganizationAdminForOrg
+from organizations.models import Organization
 from .models import CareTeamMembership
 from rest_framework import mixins, generics
 from .serializers import CareTeamMembershipSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import action
+from accounts.permissions import IsClinicianForPatient
+from patients.models import Patient
 
-class PatientCareTeamMembershipCreateListView(
+class CareTeamMembershipCreateListView(
     generics.GenericAPIView,
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
 ):
     serializer_class = CareTeamMembershipSerializer
-    permission_classes = [IsOrganizationAdminForOrg]
+    permission_classes = [IsClinicianForPatient | IsOrganizationAdminForOrg]
+
 
     def get_queryset(self):
         return CareTeamMembership.objects.filter(
@@ -40,22 +43,32 @@ class PatientCareTeamMembershipCreateListView(
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def perform_create(self, serializer):
+        managing_organization = get_object_or_404(
+            Organization,
+            record_id=self.kwargs['organization_id']
+        )
+        patient = get_object_or_404(
+            Patient,
+            record_id=self.kwargs['patient_id']
+        )
         serializer.save(
-            patient=self.kwargs['patient_id'],
             status='active',
-            managing_organization=self.kwargs['organization_id'],
-            assigned_by=self.request.user
+            assigned_by=self.request.user.organization_memberships.filter(
+                organization_id=self.kwargs['organization_id'],
+                status='active'
+            ).first(),
+            managing_organization=managing_organization,
+            patient=patient
         )
 
-class CareTeamMembershipRetrieveDeactivateView(
-    generics.GenericAPIView,
-    mixins.RetrieveModelMixin,
+class CareTeamMembershipRetrieveView(
+    generics.RetrieveAPIView
 ):
     """
     View to retrieve a care team membership
     """
     serializer_class = CareTeamMembershipSerializer
-    permission_classes = [IsOrganizationAdminForOrg]
+    permission_classes = [IsOrganizationAdminForOrg | IsClinicianForPatient]
     
     def get_object(self):
         return get_object_or_404(
@@ -64,11 +77,15 @@ class CareTeamMembershipRetrieveDeactivateView(
             managing_organization_id=self.kwargs['organization_id']
             )
 
-
-
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
-    
+
+class CareTeamMembershipDeactivateView(
+    generics.GenericAPIView,
+):
+    serializer_class = CareTeamMembershipSerializer
+    permission_classes = [IsOrganizationAdminForOrg]
+
     def post(self, request, *args, **kwargs):
         """
         Deactivates a care team membership
@@ -81,4 +98,3 @@ class CareTeamMembershipRetrieveDeactivateView(
         membership.status = 'inactive'
         membership.save()
         return Response(status=status.HTTP_200_OK)
-

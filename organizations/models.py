@@ -56,8 +56,8 @@ class OrganizationMembership(TimeStampedModel):
     status = models.CharField(max_length=255, choices=ORGANIZATION_MEMBERSHIP_STATUS_CHOICES)
     approved_at = models.DateTimeField(blank=True, null=True)
     approved_by = models.ForeignKey(
-        RpmUser, 
-        on_delete=models.CASCADE, 
+        "OrganizationMembership", 
+        on_delete=models.SET_NULL, 
         blank=True, 
         null=True,
         related_name='approved_organization_memberships',
@@ -80,7 +80,7 @@ class OrganizationInvitation(TimeStampedModel):
     expires_at = models.DateTimeField()
     invitee_email = models.EmailField()
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    invited_by = models.ForeignKey(RpmUser, on_delete=models.CASCADE) # A user can receive multiple invitations.
+    invited_by = models.ForeignKey(OrganizationMembership, on_delete=models.CASCADE) # A user can receive multiple invitations.
     status = models.CharField(max_length=255, choices=CLINICIAN_INVITATION)
 
     class Meta:

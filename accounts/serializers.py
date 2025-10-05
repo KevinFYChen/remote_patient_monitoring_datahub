@@ -6,6 +6,7 @@ from .models import RoleChoices
 
 class RpmUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    user_id = serializers.UUIDField(source='record_id', read_only=True)
 
     def create(self, role, validated_data):
         validated_data['role'] = role
@@ -17,7 +18,7 @@ class RpmUserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = RpmUser
-        fields = ['email', 'is_active', 'is_staff', 'password','role']
+        fields = ['user_id', 'email', 'is_active', 'is_staff', 'password','role']
         read_only_fields = ['role', 'is_active', 'is_staff']
 
 class RpmPatientSerializer(RpmUserSerializer):
@@ -29,7 +30,7 @@ class RpmClinicianSerializer(RpmUserSerializer):
         return super().create("clinician", validated_data)
 
 class ClinicianProfileSerializer(serializers.ModelSerializer):
-    clinician_profile_id = serializers.UUIDField(source='record_id')
+    clinician_profile_id = serializers.UUIDField(source='record_id', read_only=True)
 
     class Meta:
         model = ClinicianProfile
@@ -37,7 +38,7 @@ class ClinicianProfileSerializer(serializers.ModelSerializer):
             "clinician_profile_id","user", 'first_name', 'last_name', 'npi_number', 'medical_license_number', 'license_state', 
             'license_expiration_date', 'specialty', 'credentials_verified', 'verification_datetime', 
             'verified_by']
-        read_only_fields = ["clinician_profile_id", "user","credentials_verified",'verification_datetime', 'verified_by']
+        read_only_fields = ["user","credentials_verified",'verification_datetime', 'verified_by']
 
 class RpmAnalystSerializer(RpmUserSerializer):
     def create(self, validated_data):

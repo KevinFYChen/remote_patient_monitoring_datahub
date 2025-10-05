@@ -67,7 +67,7 @@ class CreateRetrieveClinicianProfileView(
     Viewset to create or retrieve the clinician profile for the current user
     """
     serializer_class = ClinicianProfileSerializer
-    permission_classes = [IsClinician]
+    permission_classes = [IsClinician | IsOrganizationAdmin]
 
     def get_object(self):
         return get_object_or_404(ClinicianProfile, user=self.request.user)
@@ -98,6 +98,9 @@ class UpdateClinicianProfileView(generics.UpdateAPIView):
             if not is_organization_admin:
                 raise PermissionDenied("You are not authorized to update this clinician profile.")
         return get_object_or_404(ClinicianProfile, record_id=clinician_profile_id)
+    
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
 class VerifyClinicianProfileView(views.APIView):
     """
