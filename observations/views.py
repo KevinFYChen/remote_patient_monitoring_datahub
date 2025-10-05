@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from patients.models import Patient
 from rest_framework.exceptions import NotFound
-from accounts.permissions import IsClinicianForPatient
+from accounts.permissions import IsClinicianForPatient, IsPatient
 
 
 class PatientObservationViewSet(
@@ -16,7 +16,7 @@ class PatientObservationViewSet(
     viewsets.GenericViewSet
 ):
     serializer_class = ObservationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsPatient]
 
     def get_queryset(self):
         return Observation.objects.filter(
@@ -25,7 +25,8 @@ class PatientObservationViewSet(
 
     def get_object(self):
         return get_object_or_404(
-            Observation, record_id=self.kwargs['observation_id'], 
+            Observation, 
+            record_id=self.kwargs['observation_id'], 
             patient_id=self.request.user.patient.record_id
             )
     
