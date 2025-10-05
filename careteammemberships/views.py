@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from accounts.permissions import IsClinicianForPatient
 from patients.models import Patient
+from organizations.models import PatientOrganizationConsent
 
 class CareTeamMembershipCreateListView(
     generics.GenericAPIView,
@@ -32,6 +33,13 @@ class CareTeamMembershipCreateListView(
         """
         Creates a care team membership for a clinician given a patient
         """
+        # Check if patient had given consent to the organization
+        if not PatientOrganizationConsent.objects.filter(
+            patient_id=self.kwargs['patient_id'],
+            organization_id=self.kwargs['organization_id'],
+            is_revoked=False
+        ).exists():
+            return Response({'error': 'Patient has not given consent to the organization'}, status=status.HTTP_400_BAD_REQUEST)
         data = request.data.copy()
         # if reason for assignment is not provided, set it to an empty string
         if 'reason_for_assignment' not in data:

@@ -59,9 +59,11 @@ Import/create a Postman collection with these base settings:
 Namespaces:
 - Accounts/Auth: `{{base_url}}/auth/`
 - Organizations: `{{base_url}}/organizations/`
+ - Patients: `{{base_url}}/patients/`
+ - Observations: `{{base_url}}/observations/`
 
 Accounts/Auth endpoints:
-- `POST /auth/register/patient/` — Register a patient user (no auth required)
+- `POST /auth/patient/` — Register a patient user (no auth required)
 - `POST /auth/login/` — Obtain JWT access/refresh tokens
 - `POST /auth/token/refresh/` — Refresh access token
 - `GET /auth/me/` — Get current user (auth required)
@@ -81,13 +83,14 @@ Organization endpoints:
 - `GET /organizations/{organization_id}/members/` — List members (admin or org admin)
 - `GET/PUT/PATCH /organizations/{organization_id}/members/{membership_id}/` — Retrieve/update member (admin or org admin)
 - `POST /organizations/{organization_id}/members/{membership_id}/approve/` — Approve clinician membership (org admin)
+- `POST /organizations/{organization_id}/patient-consent/` — Patient grants consent from org to access its data(patient auth)
 - `GET/POST /organizations/{organization_id}/invitations/` — List/create clinician invitations (org admin)
 - `POST /organizations/invitations/{invitation_token}/accept/` — Accept invitation (public)
 
-## 4) Try registering a patient account
+## 4) Register a patient user
 
 Endpoint:
-- `POST {{base_url}}/auth/register/patient/`
+- `POST {{base_url}}/auth/patient/`
 
 Example JSON payload:
 ```json
@@ -98,7 +101,10 @@ Example JSON payload:
 ```
 
 Expected:
-- 201 Created with user data. The account role is set to `patient` and activated.
+- 201 Created with user data. The account role is `patient` and the user is active.
+
+Notes:
+- This creates a login-capable user but not a patient profile. See section 6.
 
 ## 5) Clinician onboarding workflow
 
@@ -217,6 +223,92 @@ No payload required. Response includes the updated profile with `credentials_ver
 Notes:
 - Requires the clinician profile to exist and be verified.
 - Membership must currently be `pending`.
+
+## 6) Patients app endpoints and patient profile
+
+After registering and logging in as a patient, create your patient profile.
+
+Endpoints (Patients app):
+- `POST {{base_url}}/patients/` — Create patient profile for the current user
+- `GET/PUT/PATCH {{base_url}}/patients/me/` — Retrieve/update your patient profile
+
+Auth: Patient JWT
+
+Example payload for `POST /patients/`:
+```json
+{
+  "first_name": "Taylor",
+  "last_name": "Lee",
+  "date_of_birth": "1980-05-20",
+  "gender": "female",
+  "contact_number": "+1-555-222-3333",
+  "address": "456 Oak Ave, Springfield"
+}
+```
+
+Expected:
+- 201 Created with `patient_id` and profile fields. The `user` field is set automatically.
+
+## 7) Patient consent to organizations
+
+Patients must grant consent to an organization before the organization can assign clinicians to their care team or clinicians can access their data.
+
+Endpoint (Organizations app):
+- `POST {{base_url}}/organizations/{organization_id}/patient-consent/`
+
+Auth: Patient JWT
+
+Payload:
+- You can POST an empty JSON object `{}`. The server sets `patient` and `organization` automatically, with defaults:
+  - `consented_at`: now
+  - `expires_at`: 365 days from creation
+
+Notes:
+- `organization_id` is the UUID of the organization.
+- Consent is required before an org-admin can assign clinicians to the patient’s care team.
+
+## 8) Care team memberships (assign clinicians to a patient)
+
+Base path is under Organizations: `{{base_url}}/organizations/{organization_id}/patients/{patient_id}/careteam-memberships/`
+
+Endpoints (CareTeamMemberships app):
+- `GET /organizations/{organization_id}/patients/{patient_id}/careteam-memberships/` — List care team memberships (auth: org admin or clinician for patient)
+- `POST /organizations/{organization_id}/patients/{patient_id}/careteam-memberships/` — Create care team membership (auth: org admin)
+- `GET /organizations/{organization_id}/patients/{patient_id}/careteam-memberships/{membership_id}/` — Retrieve membership (auth: org admin or clinician for patient)
+- `POST /organizations/{organization_id}/patients/{patient_id}/careteam-memberships/{membership_id}/deactivate/` — Deactivate membership (auth: org admin)
+
+Prerequisites for creating a care team membership:
+- The patient has a patient profile (`POST /patients/`).
+- The patient has granted consent to the organization (`POST /organizations/{organization_id}/patient-consent/`).
+
+Example payload for creating a care team membership:
+```json
+{
+  "clinician": "<clinician_profile_uuid>",
+  "role": "primary care physician",
+  "reason_for_assignment": "Chronic condition management"
+}
+```
+
+Server-managed fields:
+- `status` is set to `active` on creation.
+- `patient`, `managing_organization`, `assigned_by` are populated by the server.
+
+## 9) Observations endpoints
+
+There are separate endpoints for patients (self-service) and clinicians (accessing a patient’s data when permitted):
+
+- Patient endpoints (Observations app, auth: patient)
+  - `GET /observations/` — List your observations
+  - `POST /observations/` — Create a new observation for yourself
+  - `GET /observations/{observation_id}/` — Retrieve one of your observations
+
+- Clinician endpoints (Patients app, auth: clinician with access)
+  - `GET /patients/{patient_id}/observations/` — List observations for a patient
+  - `GET /patients/{patient_id}/observations/{observation_id}/` — Retrieve observation for a patient
+
+Notes:
+- Clinician access requires a valid clinician-patient relationship and organizational context as enforced by permissions.
 
 ## Authentication flow (JWT)
 - Login: `POST /auth/login/` → returns `access` and `refresh` tokens

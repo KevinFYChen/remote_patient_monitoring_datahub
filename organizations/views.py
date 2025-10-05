@@ -303,7 +303,7 @@ class ListOrganizationClinicianProfilesView(generics.ListAPIView):
 
 class CreatePatientOrganizationConsentView(generics.CreateAPIView):
     """
-    Creates a patient organization consent
+    Creates a patient organization consent. This gives the organization permission to access the patient's data.
     """
     permission_classes = [IsPatient]
     serializer_class = PatientOrganizationConsentSerializer

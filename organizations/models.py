@@ -91,8 +91,8 @@ class PatientOrganizationConsent(TimeStampedModel):
     A resource that represents the consent of a patient to share their data with an organization
     """
     record_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    patient = models.ForeignKey(Patient, related_name='patient_organization_consents', on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, related_name='patient_organization_consents', on_delete=models.CASCADE)
     consented_at = models.DateTimeField(default=datetime.now(tz=timezone.utc))
     expires_at = models.DateTimeField(default=datetime.now(tz=timezone.utc) + timedelta(days=365))
     is_revoked = models.BooleanField(default=False)
